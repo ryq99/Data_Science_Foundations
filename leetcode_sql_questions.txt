@@ -262,3 +262,231 @@ ON e.left_operand == v_l.name
 JOIN Variables AS v_r 
 ON e.right_operand == v_r.name 
 
+
+-- 1445. Apples & Oranges
+SELECT
+sale_date,
+num_apples - num_oranges AS diff 
+FROM (
+(
+SELECT
+sale_date,
+sum(sold_num) AS num_apples
+FROM Sales
+WHERE fruit == 'apples'
+) AS a
+OUTER JOIN (
+    SELECT
+    sale_date, 
+    sum(sold_num) AS num_oranges
+    FROM Sales
+    WHERE fruit == 'oranges'
+) AS o
+ON a.sale_date == o.sales_date
+)
+
+-- 1454. Active Users
+
+(
+SELECT
+id,
+login_date AS 1st
+1 AS c_1
+FROM Logins
+ORDER BY id, login_date
+) a
+JOIN (
+    SELECT 
+    id, 
+    login_date - 1 AS 2nd
+    FROM Logins
+    ORDER BY id, login_date
+) b
+ON a.login_date == b.login_date - 1
+JOIN (
+    SELECT
+    id, 
+    login_date - 2 AS 3rd
+    FROM Logins
+    ORDER BY id, login_date
+)
+JOIN (
+    id, 
+    login_date - 3 AS 4th
+    FROM Logins
+    ORDER BY id, login_date
+)
+JOIN (
+    id,
+    login_date - 5 AS 5th
+    FROM Logins
+    ORDER BY id, login_date
+)
+
+/* try out:
+SELECT *, sum(some_value) OVER (
+        PARTITION BY Cust_ID 
+        ORDER BY CAST(Purch_Date AS timestamp) 
+        RANGE BETWEEN 6 PRECEDING AND CURRENT ROW
+     ) AS cummulativeSum FROM Spend_Table
+*/
+
+/* solution:
+SELECT          DISTINCT l1.id, a.name
+FROM            Logins l1
+LEFT JOIN       Accounts a
+ON              l1.id = a.id
+WHERE           date_add(l1.login_date, 1) in (SELECT login_date from Logins l2 where l2.id = l1.id)
+AND             date_add(l1.login_date, 2) in (SELECT login_date from Logins l3 where l3.id = l1.id)
+AND             date_add(l1.login_date, 3) in (SELECT login_date from Logins l4 where l4.id = l1.id)
+AND             date_add(l1.login_date, 4) in (SELECT login_date from Logins l5 where l5.id = l1.id)
+ORDER BY 1 */
+
+
+-- 1459. Rectangles Area
+SELECT
+p1.id AS p1,
+p2.id AS p2,
+abs(p1.x_value - p2.x_value) * abs(p1.y_value - p2.y_value) AS area
+FROM Points AS p1
+OUTER JOIN Points AS p2
+ON p1.id < p2.id 
+WHERE p1.x_value != p2.x_value AND p1.y_value != p2.y_value
+ORDER BY area DESC
+
+
+-- 1468. Calculate Salaries
+SELECT
+company_id,
+employee_id,
+employee_name,
+round(salary - tax * salary) AS salary
+FROM Salaries AS s
+JOIN 
+(
+SELECT 
+company_id,
+CASE WHEN max(salary) < 1000 THEN 0
+     WHEN max(salary) BETWEEN 1000 AND 10000 THEN 0.24
+     WHEN max(salary) > 10000 THEN 0.49 END AS tax
+FROM Salaries
+GROUP BY company_id
+) AS t
+ON s.company_id == t.company_id
+
+
+-- 1479. Sales by Day of the Week
+CREATE TEMPORARY TABLE temp AS 
+(
+SELECT 
+order_id, 
+customer_id,
+order_date,
+item_id,
+item_name, 
+item_category,
+quantity
+FROM Items AS i
+LEFT JOIN Orders AS o
+ON i.item_id == o.item_id
+)
+
+SELECT 
+m.item_category,
+COALESCE(sum(quantity), 0) AS Monday
+FROM temp AS m
+WHERE weekday(order_date) == 'monday'
+GROUP BY item_category
+JOIN (
+    SELECT 
+    item_category,
+    COALESCE(sum(quantity), 0) AS Tuesday
+    FROM temp
+    WHERE weekday(order_date) == 'tuesday'
+    GROUP BY item_category
+) AS t
+ON m.item_category == t.item_category
+JOIN (
+    SELECT 
+    item_category,
+    COALESCE(sum(quantity), 0) AS Wednesday
+    FROM temp 
+    WHERE weekday(order_date) == 'wednesday'
+    GROUP BY item_category
+) AS w
+ON m.item_category == w.item_category
+JOIN (
+    SELECT 
+    item_category,
+    COALESCE(sum(quantity), 0) AS Thursday
+    FROM temp
+    WHERE weekday(order_date) == 'thursday'
+    GROUP BY item_category
+) AS th
+ON m.item_category == th.item_category
+JOIN (
+    SELECT 
+    item_category,
+    COALESCE(sum(quantity), 0) AS Friday
+    FROM temp
+    WHERE weekday(order_date) == 'friday'
+    GROUP BY item_category
+) AS f
+ON m.item_category == f.item_category
+JOIN (
+    SELECT 
+    item_category,
+    COALESCE(sum(quantity), 0) AS Saturday
+    FROM temp
+    WHERE weekday(order_date) == 'saturday'
+    GROUP BY item_category
+) AS sa
+ON m.item_category == sa.item_category
+JOIN (
+    SELECT 
+    item_category,
+    COALESCE(sum(quantity), 0) AS Sunday
+    FROM temp
+    WHERE weekday(order_date) == 'sunday'
+    GROUP BY item_category
+) AS su
+ON m.item_category == su.item_category 
+
+/* solution:
+select 
+a.item_category as Category,
+sum(case when a.day = 'Monday' then a.quantity else 0 end) as Monday,
+sum(case when a.day = 'Tuesday' then a.quantity else 0 end) as Tuesday,
+sum(case when a.day = 'Wednesday' then a.quantity else 0 end) as Wednesday,
+sum(case when a.day = 'Thursday' then a.quantity else 0 end) as Thursday,
+sum(case when a.day = 'Friday' then a.quantity else 0 end) as Friday,
+sum(case when a.day = 'Saturday' then a.quantity else 0 end) as Saturday,
+sum(case when a.day = 'Sunday' then a.quantity else 0 end) as Sunday
+from
+(
+select 
+o.quantity,
+i.item_category,
+date_format(o.order_date, 'u') as day
+from orders as o 
+right join items as i 
+on o.item_id == i.item_id)
+) as a           
+group by Category order by Category;
+*/
+
+
+-- 1484. Group Sold Products By The Date
+
+SELECT
+sell_date,
+count(product) AS num_sold,
+group_concat(product ORDER BY product) AS products
+FROM
+(
+SELECT DISTINCT
+sell_date,
+product
+FROM Activities
+)
+GROUP BY sell_date
