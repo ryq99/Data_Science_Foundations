@@ -1,0 +1,264 @@
+-- 1378. Replace Employee ID With The Unique Identifier
+select
+i.unique_id,
+e.name
+from Employees as e 
+left join EmployeeUNI as i
+on e.id == i.id
+
+-- 1384. Total Sales Amount by Year
+
+select
+product_id,
+product_name,
+y as report_year,
+average_daily_sales * num_days as total_amount
+from
+(
+select 
+*,
+year(period_start) as y,
+month(period_start) as m, 
+days(period_end - period_start) as num_days,
+from Product as p 
+left join Sales as s 
+on p.product_id == s.product_id
+) as temp
+group by product_id, y 
+order by product_id, y 
+
+/* solution:
+SELECT 
+temp.product_id, 
+product_name, 
+report_year, 
+total_amount
+FROM
+(
+SELECT 
+product_id,
+'2018' AS report_year,
+average_daily_sales * (DATEDIFF(LEAST(period_end, '2018-12-31'), GREATEST(period_start, '2018-01-01')) + 1) AS total_amount
+FROM Sales
+WHERE period_end>='2018-01-01'
+AND period_start<='2018-12-31'
+UNION ALL
+SELECT 
+product_id, 
+'2019',
+average_daily_sales*(DATEDIFF(LEAST(period_end,'2019-12-31'),GREATEST(period_start,'2019-01-01'))+1) 
+FROM Sales
+WHERE period_end>='2019-01-01'
+AND period_start<='2019-12-31'
+UNION ALL 
+SELECT 
+product_id,
+'2020',
+average_daily_sales*(DATEDIFF(LEAST(period_end,'2020-12-31'),GREATEST(period_start,'2020-01-01'))+1) 
+FROM Sales
+WHERE period_end>='2020-01-01'
+AND period_start<='2020-12-31'
+) AS temp
+INNER JOIN Product ON product_id
+ORDER BY temp.product_id, report_year 
+*/
+
+-- 1393 Capital Gain/Loss
+SELECT
+stock_name,
+(lst_sell_price - ori_buy_price) as capital_gain_loss
+FROM (
+    SELECT
+    stock_name,
+    FIRST(price) AS ori_buy_price
+    FROM (
+        SELECT 
+        stock_name,
+        operation_day,
+        price
+        FROM Stocks
+        WHERE operation == 'Buy'
+        ORDER BY operation_day ASC
+        ) AS buy
+    GROUP BY stock_name 
+    ) AS a
+JOIN (
+    SELECT
+    stock_name, 
+    FIRST(price) AS lst_sell_price
+    FROM (
+        select
+        stock_name, 
+        operation_day,
+        price
+        FROM Stocks
+        WHERE operation == 'Sell'
+        ORDER BY operation_day DESC
+        ) AS sell
+    GROUP BY stock_name
+    ) AS b
+ON a.stock_name == b.stock_name
+
+/* solution:
+SELECT 
+stock_name,
+SUM(price) - 2 * SUM(CASE WHEN operation == 'Buy', THEN price ELSE 0 END) as capital_gain_loss
+FROM Stocks
+GROUP BY stock_name 
+*/
+
+-- 1398 Customers Who Bought Products A and B but Not C
+SELECT
+customer_id,
+customer_name,
+CASE WHEN product_name
+FROM Customers AS c
+LEFT JOIN (
+SELECT 
+customer_id,
+product_name
+count(order_id) AS num_orders
+FROM Orders AS o  
+WHERE o.product_name in ('A', 'B', 'C')
+GROUP BY customer_id, product_name
+) AS temp
+
+/* try out:
+Use
+
+HAVING sum(ea.gender = 'female') > 0 
+   AND sum(ea.gender = 'male') > 0
+or
+
+HAVING count(distinct ea.gender) = 2
+*/
+
+
+/* solution:
+select customer_id, customer_name
+from (
+    select distinct c.customer_id, c.customer_name, o.product_name, 
+    case when o.product_name = 'A' or o.product_name = 'B' then 1
+    when o.product_name = 'C' Then -2 END as qualifers 
+    from customers c
+    left join orders o
+    on c.customer_id = o.customer_id
+) as tmp1 
+group by customer_id 
+having sum(qualifers) = 2
+*/
+
+-- 1407. Top Travellers
+SELECT 
+u.id,
+u.name,
+COALESCE(sum(r.distance), 0) AS travelled_distance
+FROM Users AS u 
+LEFT JOIN Rides AS r 
+ON u.id == r.user_id
+GROUP BY u.id, u.name 
+ORDER BY travelled_distance DESC, u.name ASC
+
+
+-- 1412. Find the Quiet Students in All Exams
+
+SELECT 
+student_id
+student_name,
+COUNT(exam_id) AS num_exams, 
+SUM(CASE WHEN score IS NULL THEN 1 else 0 END) as num_na_scores
+FROM Student AS s
+JOIN Exam AS e
+ON s.student_id == e.student_id
+GROUP BY student_id, student_name 
+HAVING num_exams > 1 AND num_na_scores > 1
+
+/* solution:
+WITH top_bot_students AS (
+    SELECT 
+    exam_id,
+    student_id,
+    score,
+    highest_score,
+    lowest_score
+    from Exam as e
+    JOIN (
+        SELECT
+        exam_id, 
+        max(score) as highest_score,
+        min(score) as lowest_score
+        FROM Exam as e_1
+        GROUP BY exam_id
+        )
+    WHERE score == highest_score OR score == lowest_score
+)
+
+SELECT DISTINCT
+student_id,
+student_name,
+tbs.score AS top_bot_score
+FROM Student as s
+LEFT JOIN (
+    SELECT 
+    student_id,
+    count(exam_id) AS num_exams
+    FROM Exam AS e
+    GROUP BY student_id
+) AS ne
+ON s.student_id == ne.student_id
+LEFT JOIN top_bot_students AS tbs
+ON s.student_id == tbs.student_id
+WHERE num_exams > 1 AND top_bot_score IS NULL
+*/
+
+
+-- 1421. NPV Queries
+SELECT
+q.id,
+q.year,
+COALESCE(n.npv, 0) AS npv
+FROM Queries AS q
+LEFT JOIN NPV AS n
+ON (q.id, q.year) == (n.id, n.year)
+ORDER BY q.id
+
+
+-- 1435. Create a Session Bar Chart
+WITH bin_table AS (
+SELECT
+session_id,
+CASE WHEN duration < 5 THEN '[0-5>'
+     WHEN duration >= 5 AND duration < 10 THEN '5-10>'
+     WHEN duration >= 10 AND duration <15 THEN '10-15>'
+     ELSE '15 or more' END AS bin,
+FROM Sessions
+)
+
+SELECT 
+bin,
+count(session_id) AS total_amount
+FROM bin_table
+ORDER BY bin;
+
+/* solution:
+select '[0-5>' as bin, count(if(duration < 300,1,null)) as total from sessions union
+select '[5-10>' as bin, count(if(duration >= 300 and duration < 600,1,null)) as total from sessions union
+select '[10-15>' as bin, count(if(duration >= 600 and duration < 900,1,null)) as total from sessions union
+select '15 or more' as bin, count(if(duration >= 900,1,null)) as total from sessions
+*/
+ 
+
+-- 1440. Evaluate Boolean Expression
+SELECT
+v_l.value AS left_operand,
+e.operator,
+v_r.value AS right_operand,
+CASE WHEN e.operator == '>' THEN v_l.value > v_r.value
+     WHEN e.operator == '=' THEN v_l.value = v_r.value 
+     ELSE v_l.value < v_r.value END AS value
+FROM Expressions AS e 
+JOIN Variables AS v_l
+ON e.left_operand == v_l.name
+JOIN Variables AS v_r 
+ON e.right_operand == v_r.name 
+
