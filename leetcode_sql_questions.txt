@@ -490,3 +490,155 @@ product
 FROM Activities
 )
 GROUP BY sell_date
+
+
+
+-- 1495. Friendly Movies Streamed Last Month
+SELECT
+DISTINCT title
+FROM TVProgram AS t
+JOIN Content AS c
+ON t.content_id == c.content_id
+WHERE program_date BETWEEN '06-01-2020' AND '06-30-2020' AND Kids_content == 'Y'
+
+
+-- 1501. Countries You Can Safely Invest In
+
+SELECT
+co.name AS country,
+avg(c.duration) AS avg_duration
+FROM Calls AS c 
+JOIN Person AS p 
+ON c.caller_id == p.id
+JOIN Country AS co 
+ON substr(p.phone_number, 1, 3) == co.country_code
+GROUP BY co.name HAVING avg(c.duration) > (SELECT avg(duration) FROM Calls)
+ORDER BY co.name
+
+
+
+-- 1511. Customer Order Frequency
+SELECT
+customer_id,
+name
+FROM
+(
+SELECT
+c.name,
+date_format(o.order_date, 'yyyy-MM') AS y_m
+CASE WHEN sum(p.price * o.quantity) > 100 THEN 1 ELSE 0 AS if_greater_100
+FROM Customers AS c
+LEFT JOIN Orders AS o
+ON c.customer_id == o.customer_id
+JOIN Product AS p 
+ON o.product_id == p.product_id
+WHERE o.order_date BETWEEN '06-01-2020' AND '07-31-2020'
+GROUP BY name, date_format(o.order_date, 'yyyy-MM')
+) AS temp
+GROUP BY customer_id HAVING sum(if_greater_100) == 2
+
+
+-- 1517. Find Users With Valid E-Mails
+SELECT
+user_id,
+name
+FROM Users
+WHERE substr(mail, 1, 1) RLIKE '[a-z][A-Z]' AND RLIKE '[a-z][A-Z][_][.][-][0-9]' AND split(mail, '[@]')[1] == 'leetcode.com'
+
+/* solution:
+1. ^[a-zA-Z] the first character should be only alphanumeric
+2. [a-zA-Z0-9_.-]* the middle can contain any of these and multiple times (* is for multiple times)
+3. leetcode.com$ ending should be leetcode.com ($ is for the ending)
+4. On top of using the square brackets [] to identify character sets, 
+   and regular brackets () to identify groupings, 
+   there are a few other common characters which control the behaviour.
+   * – Any number of occurrences (includes 0)
+   + – One or more occurrences
+   ? – 0 or 1 occurrences
+   ^ – Start of line
+   $ – End of line
+
+SELECT 
+* 
+FROM Users 
+WHERE mail RLIKE '^[a-zA-Z][a-zA-Z0-9_.-]*@leetcode.com$'
+*/
+
+
+-- 1527. Patients With a Condition
+SELECT
+*
+FROM Patients
+WHERE conditions RLIKE 'DIAB1$' OR '^ DIAB1$';
+
+
+-- 1532. The Most Recent Three Orders
+CREATE TEMPORARY TABLE temp AS
+(
+SELECT
+c.customer_id,
+c.customer_name,
+order_id,
+order_date,
+RANK(order_date PARTITION BY ORDER BY order_date DESC) AS nth_order
+FROM Customers AS c
+LEFT JOIN Orders AS o
+ON c.customer_id == o.customer_id
+GROUP BY c.customer_id 
+)
+
+SELECT DISTINCT
+customer_name,
+customer_id,
+order_id,
+order_date
+1 as nth_order
+FROM Customers AS c
+LEFT JOIN temp AS t_1
+ON c.customer_id, 1 == t_1.customer_id, t_1.nth_order
+UNION (
+    SELECT DISTINCT
+    customer_name,
+    customer_id,
+    order_id,
+    order_date
+    2 as nth_order
+    FROM Customers AS c
+    LEFT JOIN temp AS t_2
+    ON c.customer_id, 2 == t_2.customer_id, t_2.nth_order
+)
+UNION (
+    SELECT DISTINCT
+    customer_name,
+    customer_id,
+    order_id,
+    order_date
+    3 as nth_order
+    FROM Customers AS c
+    LEFT JOIN temp AS t_3
+    ON c.customer_id, 3 == t_3.customer_id, t_3.nth_order
+)
+ORDER BY c.customer_name ASC, c.customer_id ASC, o.order_date DESC
+
+
+-- 1543. Fix Product Name Format
+SELECT
+trim(lower(product_name)) AS product_name,
+date_format(sale_date, 'yyyy-MM') AS sale_date,
+count(sale_id)
+FROM Sales AS s 
+GROUP BY trim(lower(product_name))
+ORDER BY trim(lower(product_name)) ASC, sale_date ASC
+
+
+-- 1549. The Most Recent Orders for Each Product
+SELECT
+product_name,
+product_id,
+order_id,
+order_date
+FROM Orders AS o 
+JOIN Products AS p
+ON o.product_id == p.product_id
+GROUP BY o.product_id HAVING RANK() OVER (PARTITION BY o.product_id ORDER BY order_date DESC) == 1
+ORDER BY product_name ASC, product_id ASC, order_id ASC
