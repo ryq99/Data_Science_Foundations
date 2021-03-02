@@ -569,7 +569,13 @@ WHERE mail RLIKE '^[a-zA-Z][a-zA-Z0-9_.-]*@leetcode.com$'
 SELECT
 *
 FROM Patients
-WHERE conditions RLIKE 'DIAB1$' OR '^ DIAB1$';
+WHERE conditions RLIKE '^DIAB1$' OR '^[a-zA-Z0-9] DIAB1$';
+
+/* solution:
+SELECT * 
+FROM Patients
+WHERE conditions LIKE "DIAB1%" OR conditions LIKE "% DIAB1%"
+*/
 
 
 -- 1532. The Most Recent Three Orders
@@ -580,46 +586,72 @@ c.customer_id,
 c.customer_name,
 order_id,
 order_date,
-RANK(order_date PARTITION BY ORDER BY order_date DESC) AS nth_order
+RANK() OVER (PARTITION BY c.customer_id ORDER BY order_date DESC) AS nth_order
 FROM Customers AS c
 LEFT JOIN Orders AS o
 ON c.customer_id == o.customer_id
-GROUP BY c.customer_id 
 )
 
 SELECT DISTINCT
-customer_name,
-customer_id,
-order_id,
-order_date
-1 as nth_order
+c.customer_name,
+c.customer_id,
+t_1.order_id,
+t_1.order_date,
 FROM Customers AS c
 LEFT JOIN temp AS t_1
-ON c.customer_id, 1 == t_1.customer_id, t_1.nth_order
+ON c.customer_id == t_1.customer_id AND t_1.nth_order == 1
 UNION (
     SELECT DISTINCT
-    customer_name,
-    customer_id,
-    order_id,
-    order_date
-    2 as nth_order
+    c.customer_name,
+    c.customer_id,
+    t_2.order_id,
+    t_2.order_date
     FROM Customers AS c
     LEFT JOIN temp AS t_2
-    ON c.customer_id, 2 == t_2.customer_id, t_2.nth_order
+    ON c.customer_id == t_2.customer_id AND t_2.nth_order == 2
 )
 UNION (
     SELECT DISTINCT
-    customer_name,
-    customer_id,
-    order_id,
-    order_date
-    3 as nth_order
+    c.customer_name,
+    c.customer_id,
+    t_3.order_id,
+    t_3.order_date
     FROM Customers AS c
     LEFT JOIN temp AS t_3
-    ON c.customer_id, 3 == t_3.customer_id, t_3.nth_order
+    ON c.customer_id == t_3.customer_id AND t_3.nth_order == 3
 )
 ORDER BY c.customer_name ASC, c.customer_id ASC, o.order_date DESC
 
+-- follow up: most recent n orders per customer
+SELECT
+customer_name,
+customer_id,
+order_id,
+order_date,
+rank() OVER (PARTITION BY customer_id ORDER BY order_date DESC) AS nth_recent_order
+FROM Customers AS c 
+JOIN Orders AS o 
+ON c.customer_id == o.customer_id 
+WHERE rank() OVER (PARTITION BY customer_id ORDER BY order_date DESC) <= n
+
+/* try out:
+ERROR:  window functions are not allowed in WHERE
+LINE 3: WHERE 1 = row_number() over(PARTITION BY product_id ORDER BY amount DESC)
+*/
+
+/* solution:
+with cte as
+(
+select o.order_id,o.order_date,o.customer_id,o.cost,c.name as customer_name,dense_rank() over(partition by o.customer_id order by order_date desc) as ranks
+from Orders o
+left join customers c
+on O.customer_id = c.customer_id )
+
+select customer_name,customer_id,order_id,order_date
+from cte
+where ranks <= 3
+order by customer_name,customer_id,order_date desc
+*/
 
 -- 1543. Fix Product Name Format
 SELECT
@@ -627,18 +659,29 @@ trim(lower(product_name)) AS product_name,
 date_format(sale_date, 'yyyy-MM') AS sale_date,
 count(sale_id)
 FROM Sales AS s 
-GROUP BY trim(lower(product_name))
-ORDER BY trim(lower(product_name)) ASC, sale_date ASC
+GROUP BY trim(lower(product_name)), date_format(sale_date, 'yyyy-MM')
+ORDER BY trim(lower(product_name)) ASC, date_format(sale_date, 'yyyy-MM') ASC
 
 
 -- 1549. The Most Recent Orders for Each Product
+CREATE TEMPORARY TABLE temp AS
+(
 SELECT
-product_name,
+p.product_id,
+p.product_name,
+o.order_id,
+o.order_date,
+DENSE_RANK() OVER (PARTITION BY o.product_id ORDER BY o.order_date DESC) AS nth_recent_order
+FROM Orders AS o 
+JOIN Products AS p 
+ON o.product_id == p.product_id
+)
+
+SELECT
 product_id,
+product_name,
 order_id,
 order_date
-FROM Orders AS o 
-JOIN Products AS p
-ON o.product_id == p.product_id
-GROUP BY o.product_id HAVING RANK() OVER (PARTITION BY o.product_id ORDER BY order_date DESC) == 1
-ORDER BY product_name ASC, product_id ASC, order_id ASC
+FROM temp
+WHERE nth_recent_order == 1
+ORDER BY product_name, product_id, order_id; 
