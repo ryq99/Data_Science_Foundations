@@ -774,4 +774,115 @@ HAVING COALESCE(sum(amount), 0) > 10000
 ORDER BY account
 
 
--- 
+-- 1596. The Most Frequently Ordered Products for Each Customer
+CREATE TEMPORARY TABLE temp AS
+(
+SELECT
+customer_id,
+product_id,
+product_name,
+COALESCE(count(order_date), 0) AS num_day_order 
+FROM Customers AS c 
+LEFT JOIN Orders AS o 
+ON c.customer_id == o.customer_id 
+JOIN Products AS p 
+ON o.product_id == p.product_id 
+GROUP BY customer_id, product_id
+ORDER BY customer_id ASC, product_id ASC, count(order_date) DESC
+)
+
+SELECT
+customer_id,
+first(product_id),
+first(product_name)
+FROM temp
+GROUP BY customer_id
+ORDER BY customer_id, product_id, product_name;
+
+
+-- 1607. Sellers With No Sales
+SELECT
+s.seller_name,
+COALESCE(count(order_id), 0) AS o.num_orders
+FROM Seller AS s 
+LEFT JOIN (
+    SELECT
+    *
+    FROM Orders 
+    WHERE date_format(o.sale_date, 'yyyy') == '2020'
+    ) AS o 
+ON s.seller_id == o.seller_id 
+GROUP BY s.seller_name HAVING COALESCE(count(o.order_id), 0) == 0
+
+/* try out:
+from_unixtime(unix_timestamp('12-03-2010' , 'dd-MM-yyyy'))
+*/
+
+
+-- 1613. Find the Missing IDs
+SELECT
+RANK(customer_id) AS customer_id
+customer_id,
+customer_name
+
+FROM Customers AS c_1
+JOIN (
+    SELECT
+    RANK(customer_id) - 1 AS nxt_customer_id
+    customer_id,
+    customer_name
+    FROM Customers
+) AS c_2
+ON c_1.customer_id == c_2.customer_id
+
+
+/* solution:
+with recursive new as (
+select 1 as ids
+union all 
+select ids+1
+from new
+where ids < (select max(customer_id) from customers))
+
+select ids
+from new 
+where ids not in (
+select customer_id
+from customers)
+*/
+
+-- 1623. All Valid Triplets That Can Represent a Country
+SELECT
+a.student_name AS member_A,
+b.student_name AS member_B,
+c.student_name AS member_C
+FROM SchoolA AS a
+FULL OUTER JOIN SchoolB AS b 
+ON a.student_id == b.student_id
+OUTER JOIN SchoolC AS c
+ON b.student_id == c.student_id
+WHERE a.student_id != b.student_id 
+AND b.student_id != c.student_id 
+AND a.student_id != c.student_id
+AND a.student_name != b.student_name 
+AND b.student_name != c.student_name
+AND a.student_name != c.student_name
+
+/*
+select 
+a.student_name as member_A, 
+b.student_name as member_B, 
+c.student_name as member_C
+from schoola a, schoolb b, schoolc c
+where a.student_id != b.student_id and b.student_id!=c.student_id and a.student_id != c.student_id
+and a.student_name != b.student_name and b.student_name!=c.student_name and a.student_name != c.student_name
+*/
+
+
+-- 1633. Percentage of Users Attended a Contest
+SELECT
+contest_id,
+round(count(user_id) / (SELECT count(user_id) FROM Users) * 100, 2) AS percentage 
+FROM Register AS r
+GROUP BY contest_id
+ORDER BY contest_id ASC, round(count(user_id) / (SELECT count(user_id) FROM Users) * 100, 2) DESC
