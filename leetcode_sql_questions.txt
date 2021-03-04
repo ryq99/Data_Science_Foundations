@@ -1032,4 +1032,137 @@ FROM DailySales
 GROUP BY date_id, make_name 
 
 
--- 
+-- 1699. Number of Calls Between Two Persons
+WITH temp AS (
+    SELECT 
+    DISTINCT from_id AS id
+    FROM Calls
+    UNION (
+        SELECT
+        DISTINCT to_id AS id
+        FROM Calls
+    )
+)
+
+SELECT
+t_1.id AS person1,
+t_2.id AS person2,
+count(duration) AS call_count,
+sum(duration) AS total_duration
+FROM temp AS t_1
+JOIN temp AS t_2
+ON t_1.id < t_2.id
+LEFT JOIN Calls AS c 
+ON t_1.id == c.from_id AND t_2.id == c.to_id
+
+/* soluation:
+SELECT from_id AS person1
+     , to_id AS person2
+     , COUNT(*) AS call_count
+     , SUM(duration) AS total_duration
+
+  FROM (
+            SELECT CASE WHEN from_id > to_id THEN to_id ELSE from_id END from_id
+                 , CASE WHEN from_id > to_id THEN from_id ELSE to_id END to_id
+                 , duration
+              FROM Calls  
+       ) A
+ GROUP BY from_id
+        , to_id
+*/
+
+
+-- 1709. Biggest Window Between Visits
+WITH temp AS (
+    SELECT
+    user_id,
+    RANK() OVER (PARTITION BY user_id ORDER BY visit_date ASC) AS nth_visit
+    FROM UserVisits AS uv 
+)
+
+
+SELECT
+user_id,
+max(window) AS biggest_window
+FROM
+(
+SELECT
+user_id,
+CASE WHEN datediff(t_2.nth_visit - t_1.nth_visit) IS NULL THEN current_date ELSE (t_2.nth_visit - t_1.nth_visit) AS window
+FROM temp AS t_1 
+RIGHT JOIN temp AS t_2 
+ON t_1.user_id == t_2.user_id AND t_1.nth_visit == t_2.nth_visit - 1 
+) AS t
+GROUP BY user_id
+ORDER BY user_id
+
+
+/* try out:
+datediff()
+
+/* solution:
+select user_id, max(window_) as biggest_window
+from (
+         select user_id, datediff('2021-01-01', max(visit_date)) as window_
+         from UserVisits
+         group by user_id
+         union
+         (with numbered_table as (
+             select user_id,
+                    visit_date,
+                    row_number() over (partition by user_id order by visit_date) as idx
+             from UserVisits)
+          select n1.user_id, datediff(n2.visit_date, n1.visit_date) as window_
+          from numbered_table as n1,
+               numbered_table as n2
+          where n1.user_id = n2.user_id
+            and cast(n2.idx as signed) - cast(n1.idx as signed) = 1)) as temp
+group by user_id;
+*/
+
+
+-- 1715. Count Apples and Oranges
+WITH temp AS (
+SELECT
+box_id,
+apple_count,
+orange_count
+FROM Boxes AS b_1
+UNION (
+    SELECT
+    box_id,
+    c.apple_count,
+    c.orange_count
+    FROM Boxes AS b_3
+    JOIN Boxes AS c 
+    ON b_3.chest_id == c.chest_id
+)
+)
+
+SELECT
+sum(apple_count) AS apple_count,
+sum(orange_count) AS orange(count)
+FROM temp 
+
+
+-- 1729. Find Followers Count
+SELECT
+user_id,
+count(DISTINCT follower_id) AS followers_count
+FROM Followers AS f 
+GROUP BY user_id
+ORDER BY user_id 
+
+
+-- 1731. The Number of Employees Which Report to Each Employee
+SELECT
+e.reports_to AS employee_id,
+m.name,
+count(e.employee_id) AS reports_count,
+round(avg(e.age), 0) AS average_age
+FROM Employees AS e 
+JOIN Employees AS m 
+ON e.reports_to == m.employee_id
+GROUP BY e.reports_to, m.name
+ORDER BY e.reports_to, m.name
+
