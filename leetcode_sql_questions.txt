@@ -1166,3 +1166,85 @@ ON e.reports_to == m.employee_id
 GROUP BY e.reports_to, m.name
 ORDER BY e.reports_to, m.name
 
+-- 1741. Find Total Time Spent by Each Employee
+SELECT
+emp_id,
+event_day
+sum(out_time - in_time) AS total_time
+FROM Employees AS e 
+GROUP BY emp_id, event_day
+ORDER BY emp_id, event_day
+
+
+
+-- 1747. Leetflex Banned Accounts
+WITH temp AS (
+    SELECT
+    account_id,
+    ip_address,
+    login,
+    logout
+    RANK() OVER (PARTITION BY account_id ORDER BY login) AS nth_rank
+    FROM LogInfo
+    ORDER BY account_id, login, logout
+)
+
+SELECT DISTINCT
+l1.account_id,
+FROM temp AS l1
+JOIN temp AS l2
+ON l1.account_id == l2.account_id AND l1.nth_rank == l2.nth_rank - 1
+WHERE l2.login BETWEEN l1.login AND l1.logout AND l1.ip_address != l2.ip_address
+
+
+/* solution:
+with t1 as (
+select a.account_id, a.ip_address, a.login as login_a, a.logout as logout_a, b.ip_address as ip_address_2, b.login as login_b, b.logout as logout_b
+from LogInfo a
+join LogInfo b
+on a.account_id = b.account_id and a.ip_address != b.ip_address
+)
+select distinct account_id
+from t1
+where (login_a <= login_b and logout_a >= logout_b) or (login_b <= login_a and logout_b >= logout_a) or (login_a <= login_b and login_b <= logout_a) or (login_b <= login_a and login_a <= logout_b);
+*/
+
+-- 1757. Recyclable and Low Fat Products
+SELECT
+product_id
+FROM Products AS p 
+WHERE low_facts == 'Y' AND recyclable == 'Y'
+
+
+-- 1767. Find the Subtasks That Did Not Execute
+SELECT DISTINCT
+t.task_id,
+FROM Tasks AS t 
+LEFT JOIN (
+SELECT
+task_id,
+count(subtask_id) AS num_exec_subtasks
+FROM Executed) AS st 
+ON t.task_id == st.task_id 
+WHERE t.subtasks_count > st.num_exec_subtasks
+
+/* solution:
+with recursive cte as ( select task_id, 1 as subtask_id , subtasks_count from tasks
+union all
+select task_id, subtask_id+1 as subtask_id, subtasks_count from cte where subtask_id<subtasks_count)
+
+select c.task_id, c.subtask_id
+from cte c
+where (c.task_id, c.subtask_id) not in (select task_id, subtask_id from executed)
+*/
+
+
+-- 1777. Product's Price for Each Store
+SELECT
+product_id,
+first(CASE WHEN store == 'store1' THEN price ELSE 0 END) AS store1,
+first(CASE WHEN store == 'store2' THEN price ELSE 0 END) AS store2,
+first(CASE WHEN store == 'store3' THEN price ELSE 0 END) AS store3
+FROM Products
+GROUP BY product_id
+ORDER BY product_id
