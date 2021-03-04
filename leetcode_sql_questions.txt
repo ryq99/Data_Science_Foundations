@@ -964,3 +964,72 @@ GROUP BY month(request_at)
 ORDER BY month(requested_at)
 )
 
+
+-- 1661. Average Time of Process per Machine
+WITH temp AS 
+(
+SELECT
+a_1.machine_id,
+a_1.process_id,
+a_1.timestamp AS start_time
+FROM Activity AS a_1
+WHERE a_1.activity_type == 'start'
+JOIN (
+    SELECT 
+    a_2.machine_id,
+    a_2.process_id,
+    a_2.timestamp AS end_time
+    FROM Activity AS a_2
+    WHERE a_2.acitvity_type == 'end'
+) b_1
+ON a_1.machien_id == b_1.machine_id AND a_1.process_id == b_1.process_id
+)
+
+SELECT
+machine_id,
+round(avg(end_time - start_time), 3) AS processing_time
+FROM temp
+GROUP BY machine_id
+ORDER BY machine_id
+
+
+-- 1667. Fix Names in a Table
+SELECT
+user_id,
+upper(substr(name, 1, 1)) + lower(substr(name, 2, length(name - 1)) AS name
+FROM Users
+ORDER BY user_id
+
+
+-- 1677. Product's Worth Over Invoices
+SELECT
+name,
+sum(rest) AS rest,
+sum(paid) AS paid,
+sum(canceled) AS canceled,
+sum(refunded) AS refunded
+FROM Product AS p 
+LEFT JOIN Invoice AS i 
+ON p.product_id == i.product_id 
+GROUP BY product_id
+ORDER BY product_id
+
+
+-- 1683. Invalid Tweets
+SELECT
+tweet_id
+FROM Tweets
+WHERE length(content) > 15
+
+
+-- 1693. Daily Leads and Partners
+SELECT
+date_id,
+make_name,
+count(DISTINCT lead_id) AS unique_leads,
+count(DISTINCT partner_id) AS unique_partners
+FROM DailySales 
+GROUP BY date_id, make_name 
+
+
+-- 
