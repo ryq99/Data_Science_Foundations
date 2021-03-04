@@ -886,3 +886,81 @@ round(count(user_id) / (SELECT count(user_id) FROM Users) * 100, 2) AS percentag
 FROM Register AS r
 GROUP BY contest_id
 ORDER BY contest_id ASC, round(count(user_id) / (SELECT count(user_id) FROM Users) * 100, 2) DESC
+
+
+-- 1635. Hopper Company Queries I
+WITH temp AS 
+(
+SELECT
+month(r.requested_at) AS month,
+r.requested_at,
+count(a.driver_id) AS active_drivers
+count(a.ride_id) AS accepted_rides
+FROM Drivers AS d
+LEFT JOIN AcceptedRides AS a
+d.driver_id == a.driver_id
+JOIN Rides AS r 
+a.ride_id == r.ride_id
+WHERE r.requested_at BETWEEN '2020-01-01' AND '2020-12-31'
+GROUP BY month(r.requested_at), r.requested_at
+ORDER BY month(r.requested_at), r.requested_at
+)
+
+SELECT 
+month,
+last(requested_at),
+last(active_drivers),
+FROM temp
+JOIN (
+    SELECT
+    month,
+    sum(accepted_rides) AS accepted_rides
+    FROM temp
+    GROUP BY month
+)
+
+
+-- 1645. Hopper Company Queries II
+/* active driver is defined as cumulated joined drivers */
+WITH temp_2 AS (
+    SELECT
+    month(join_date) AS month,
+    count(driver_id) AS drivers
+    FROM Drivers AS d 
+    GROUP BY month(join_date)
+)
+
+SELECT
+a.month AS cur_month,
+round(active_drivers / sum(b.drivers) * 100, 2) AS drivers
+FROM temp_2 AS a
+JOIN temp_2 AS b
+ON a.month >= b.month
+JOIN (
+    SELECT
+    month, 
+    sum(active_drivers) AS active_drivers
+    FROM temp
+    GROUP BY month 
+) c
+ON a.month == c.month
+
+
+-- 1651. Hopper Company Queries III
+SELECT
+month,
+round(sum(distance) OVER (PARTITION BY month ORDER BY month RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) / 3, 2),
+round(sum(duration) OVER (PARTITION BY month ORDER BY month RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) / 3, 2)
+FROM
+(
+SELECT
+month(requested_at) AS month,
+sum(ride_distance) AS distance,
+sum(ride_duration) AS duration
+FROM Rides AS r 
+LEFT JOIN AcceptedRides AS a 
+ON r.ride_id == a.ride_id 
+GROUP BY month(request_at)
+ORDER BY month(requested_at)
+)
+
