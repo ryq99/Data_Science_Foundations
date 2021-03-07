@@ -1,3 +1,163 @@
+-- 175. Combine Two Tables
+SELECT
+FirstName,
+LastName,
+City,
+State 
+FROM Person AS p 
+LEFT JOIN Address AS a 
+ON p.PersonId == a.PersonId
+
+
+-- 176. Second Highest Salary
+SELECT
+t.Salary AS SecondHighestSalary 
+FROM
+(
+SELECT
+Salary,
+DENSE_RANK() OVER (ORDER BY Salary DESC) AS nth
+FROM Employee AS e
+) AS t
+WHERE t.nth == 2
+
+/* solution:
+SELECT 
+    IFNULL(
+        (SELECT Distinct Salary
+        FROM Employee
+        ORDER BY Salary Desc
+        LIMIT 1 OFFSET 1),
+        NULL
+    ) as SecondHighestSalary
+*/
+
+
+
+-- 177. Nth Highest Salary
+SELECT
+IFNULL(
+    SELECT
+    Salary AS getNthHighestSalary 
+    FROM (
+        SELECT
+        Salary,
+        DENSE_RANK() OVER (ORDER BY Salary DESC) AS rank
+        FROM Employee
+    ) t_1
+    WHERE rank == n, NULL
+)
+
+
+
+-- 178. Rank Scores
+SELECT
+Score,
+DENSE_RANK() OVER (ORDER BY Score DESC) AS Rank
+FROM Score
+
+/* solution (use row_number):
+SELECT s.score, u.rank
+FROM Scores s
+LEFT JOIN(
+    SELECT score, ROW_NUMBER() OVER (ORDER BY score DESC) AS `rank`
+    FROM (SELECT DISTINCT score FROM Scores ORDER BY score DESC) d
+) u
+ON s.score=u.score
+ORDER BY score DESC
+*/
+
+
+-- 180. Consecutive Numbers
+SELECT DISTINCT
+Num 
+FROM
+(
+SELECT
+l1.Id,
+l1.Num AS 1st_num,
+l2.Num AS 2nd_num,
+l3.Num AS 3rd_num 
+FROM Logs l1 
+JOIN Logs l2
+ON l1.Id == l2.Id - 1
+JOIN Logs l3
+ON l1.Id == l3.Id - 2
+) temp
+WHERE 1st_num == 2nd_num AND 2nd_num == 3rd_num
+
+/* solution:
+WITH cte AS ( 
+    SELECT Num, LEAD(Num) OVER(ORDER BY Id) AS Num2, LAG(Num) OVER(ORDER BY Id) AS Num3
+    FROM logs
+    ) 
+SELECT Distinct NUM as ConsecutiveNums
+FROM cte
+WHERE Num = Num2 AND Num2 = Num3;
+
+SELECT distinct ConsecutiveNums from (
+    SELECT 
+    CASE 
+        WHEN 
+			((lead(num,1) over(order by id)) = num) AND 
+			((lead(num,2) over(order by id)) = num)  
+		THEN
+			num 
+		END as ConsecutiveNums 
+    FROM logs
+)  a
+WHERE ConsecutiveNums IS NOT NULL
+*/
+
+
+-- 181. Employees Earning More Than Their Managers
+SELECT
+e.Name AS Employee
+FROM Employee AS e 
+JOIN Employee AS m 
+ON e.ManagerId == m.Id
+WHERE e.Salary > m.Salary
+
+/* solution:
+SELECT e1.Name AS Employee FROM Employee AS e1, Employee AS e2
+WHERE e1.ManagerId = e2.Id AND E1.Salary > E2.Salary
+*/
+
+
+-- 182. Duplicate Emails
+SELECT
+Email 
+FROM (
+    SELECT
+    Email,
+    count(Email) AS num
+    FROM Person 
+    GROUP BY Email 
+) temp 
+WHERE num >= 2
+
+/* solution:
+SELECT Email FROM Person
+GROUP BY Email HAVING COUNT(*) > 1
+*/
+
+
+
+-- 183. Customers Who Never Order
+SELECT
+Name
+FROM Customers c 
+WHERE Id NOT IN (SELECT DISTINCT CustomerId FROM Orders)
+
+
+SELECT 
+c.Name AS Customers
+FROM Customers c 
+LEFT JOIN Orders o 
+ON c.Id = o.CustomerId
+WHERE o.Id IS NULL
+
+
 -- 1378. Replace Employee ID With The Unique Identifier
 select
 i.unique_id,
@@ -1248,3 +1408,4 @@ first(CASE WHEN store == 'store3' THEN price ELSE 0 END) AS store3
 FROM Products
 GROUP BY product_id
 ORDER BY product_id
+
