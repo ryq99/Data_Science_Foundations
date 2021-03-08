@@ -236,7 +236,108 @@ to_date(), to_days(), subdate(recordDate, 1)
 
 
 -- 262. Trips and Users
+WITH temp AS (
+SELECT
+Id,
+Client_Id, 
+Driver_Id,
+City_Id, 
+Status, 
+Request_at,
+CASE WHEN Client_Id IN (SELECT Users_Id FROM Users WHERE Banned = 'Yes' AND Role = 'client') THEN 'Yes' ELSE 'No' END AS If_Client_Banned,
+CASE WHEN Driver_Id IN (SELECT Users_Id FROM Users WHERE Banned = 'Yes' AND Role = 'driver') THEN 'Yes' ELSE 'No' END AS If_Driver_Banned
+FROM Trips
+)
 
+SELECT
+Request_at AS Day,
+round(sum(CASE WHEN Status LIKE 'cancelled%' THEN 1 ELSE 0 END) * 1.0 / count(Id), 2) AS 'Cancellation_Rate'
+FROM temp 
+WHERE (Request_at BETWEEN '2013-10-01' AND '2013-10-03') AND If_Client_Banned = 'No' AND If_Driver_Banned = 'No'
+GROUP BY Request_at
+ORDER BY Request_at
+
+/* try out:
+- be careful of ratio calculation, considering using '* 1.0' to avoid getting all zeros
+- can't use order by in View table
+- convert(numeric(3, 2), value)
+*/
+
+
+-- 511. Game Play Analysis I
+SELECT
+player_id,
+min(event_date) AS first_login
+FROM Activity a 
+GROUP BY player_id
+ORDER BY player_id
+
+
+-- 512. Game Play Analysis II
+SELECT 
+a.player_id,
+a.device_id
+From Activity a 
+JOIN 
+(
+SELECT
+player_id,
+min(event_date) AS first_login
+FROM Activity a
+GROUP BY player_id
+) b 
+ON a.player_id == b.player_id AND a.event_date == b.first_login
+
+
+-- 534. Game Play Analysis III
+SELECT
+player_id,
+latest_date AS event_date,
+coalesce(sum(games_played), 0) AS games_played_so_far
+FROM 
+(
+SELECT
+a.player_id,
+a.event_date AS latest_date,
+b.event_date AS prev_dates,
+b.games_played
+FROM Activity a
+JOIN Activity b
+ON a.player_id == b.player_id AND a.event_date >= b.event_date
+) t
+GROUP BY player_id, latest_date
+ORDER BY player_id, latest_date
+
+/* try out:
+whenever use multi tables, assign & use the table abbreviates
+*/
+
+-- 550. Game Play Analysis IV
+WITH temp AS (
+SELECT
+player_id,
+a.event_date AS 1st_login,
+b.event_date AS 2nd_login
+FROM Activity a 
+JOIN Activity b 
+ON a.player_id == b.player_id AND b.event_date == b.event_date - 1
+JOIN (
+    SELECT
+    player_id,
+    min(event_date) AS 1st_login
+    FROM Activity
+    GROUP BY player_id
+) c 
+ON a.player_id == b.player_id AND a.event_date == c.1st_login
+)
+
+SELECT
+round(count(DISTINCT player_id) / (SELECT DISTINCT player_id FROM Activity), 2) AS fraction
+FROM temp
+
+
+
+-- 569. Median Employee Salary
 
 
 
