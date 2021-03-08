@@ -1,0 +1,70 @@
+'''
+TO answer this type of questions, be concise and organized!!!
+1. Give a concise definition in 2 to 3 sentences.
+2. Give one or two examples to convince the interviewer that you have both the theoretical knowledge and experience.
+3. If necessary, provide some common solutions to the problem.
+'''
+
+#######################
+### DATA PROCESSING ###
+#######################
+
+# How to deal with outliers?
+
+# How to deal with missing values?
+
+# How to deal with an imbalanced dataset?
+
+
+
+###########################
+### FEATURE ENGINEERING ###
+###########################
+
+# How to reduce the data dimensions?
+
+# How to engineer new features?
+
+
+##############
+### MODELS ###
+##############
+
+# What are the assumptions of linear regression?
+
+
+# What are the assumptions of logistic regression?
+
+
+# When do we know a branch of a decision tree has reached a leaf node?
+
+# Briefly describe the Random Forest, SVM, neural networks.
+
+# What are the pros and cons of linear regression vs. tree-based models?
+
+
+
+
+#######################
+### MODELING DETAIL ###
+#######################
+
+# What is overfitting and how do you deal with it?
+
+# When will you use L1 regularization compared to L2 regularization?
+
+# What are hyperparameters and how do you tune model hyperparameters?”
+
+
+
+
+########################
+### MODEL EVALUATION ###
+########################
+
+
+# List out 3 evaluation metrics for classification and regression.
+
+# What are precision and recall?
+
+# What is the difference between the ROC curve and the precision-recall curve?
