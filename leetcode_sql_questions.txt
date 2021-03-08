@@ -338,6 +338,50 @@ FROM temp
 
 
 -- 569. Median Employee Salary
+WITH temp AS (
+SELECT
+Company,
+Salary,
+rank() OVER (PARTITION BY Company ORDER BY Salary DESC) AS rank
+FROM Employee
+)
+
+
+SELECT 
+temp.Company,
+temp.Salary
+FROM
+(
+SELECT
+Company,
+max(rank) AS number
+FROM temp 
+GROUP BY Company
+HAVING max(rank) % 2 == 1
+) t
+JOIN temp 
+ON t.Company == temp.Company AND (t.number + 1) / 2 == temp.rank
+UNION (
+SELECT 
+temp.Company,
+avg(temp.Salary)
+FROM
+(
+SELECT
+Company,
+max(rank) AS number
+FROM temp 
+GROUP BY Company
+HAVING max(rank) % 2 == 0
+) t
+JOIN temp 
+ON t.Company == temp.Company 
+WHERE temp.rank IN (t.number / 2, t.number / 2 + 1)
+GROUP BY Company
+)
+
+
+-- 570. Managers with at Least 5 Direct Reports
 
 
 
