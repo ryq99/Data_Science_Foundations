@@ -382,7 +382,136 @@ GROUP BY Company
 
 
 -- 570. Managers with at Least 5 Direct Reports
+SELECT
+t.Name
+FROM (
+SELECT
+a.ManagerId,
+b.Name,
+count(a.Id) AS num_emp 
+FROM Employee a
+JOIN Employee b 
+ON a.ManagerId = b.Id
+GROUP BY a.ManagerId, b.Name
+) t 
+WHERE t.num_emp >= 5
 
+
+-- 571. Find Median Given Frequency of Numbers
+CASE WHEN total % 2 == 0 THEN (total / 2) + (total / 2 + 1) / 2
+     WHEN total % 2 == 1 THEN (total + 1) / 2
+
+WITH temp AS (
+SELECT
+t.Number,
+CASE WHEN eo == 'even' THEN (total_index / 2) ELSE (total_index + 1) / 2 END AS median_index,
+eo,
+sum(t.cur_freq) total_freq
+FROM 
+(
+SELECT
+a.Number,
+a.Frequency lst_freq,
+b.Frequency cur_freq,
+(SELECT sum(Frequency) total FROM Numbers) total_index,
+CASE WHEN (SELECT sum(Frequency) total FROM Numbers) % 2 == 0 THEN 'even' ELSE 'odd' END AS eo,
+FROM Numbers a 
+JOIN Numbers b 
+ON a.Number >= b.Number
+) t
+GROUP BY t.Number
+)
+
+SELECT 
+a.Number AS median
+FROM temp a 
+JOIN temp b 
+ON a.Number = b.Number + 1
+WHERE eo == 'odd' AND median_index > b.Number median_index <= a.Number 
+UNION (
+SELECT 
+a.Number AS median
+FROM temp a 
+JOIN temp b 
+ON a.Number = b.Number + 1
+WHERE eo == 'even' AND median_index > b.Number median_index < a.Number 
+)
+UNION (
+SELECT 
+avg(a.Number + b.Number / 2) AS median 
+FROM temp a 
+JOIN temp b 
+ON a.Number = b.Number - 1
+WHERE eo == 'even' AND median_index = a.Number 
+)
+
+
+/* try out:
+sum(Frequency) OVER (ORDER BY Number)
+*/
+
+/* solution:
+#Creating CTE with cumulative sum value by utilizing the window function
+WITH CTE AS 
+(
+    SELECT
+    Number, Frequency, SUM(Frequency) OVER(ORDER BY Number) AS total
+    FROM Numbers
+)
+
+#Splitting median calculation by odd and even MAX(total) with CASE WHEN
+
+SELECT
+CASE WHEN MAX(total)%2 = 0 #For even MAX(total)
+    THEN ((SELECT Number FROM CTE WHERE total >= (SELECT MAX(total)/2 FROM CTE) ORDER BY total LIMIT 1) +
+          (SELECT Number FROM CTE WHERE total >= (SELECT MAX(total)/2+1 FROM CTE) ORDER BY total LIMIT 1))/2
+ELSE (SELECT Number FROM CTE WHERE total >= (SELECT (MAX(total)+1) / 2 FROM CTE) ORDER BY total LIMIT 1) #For odd MAX(total)
+END AS median
+FROM CTE
+*/
+
+
+-- 574. Winning Candidate
+WITH temp AS (
+SELECT
+v.CandidateId,
+c.Name,
+count(c.id) num_votes
+FROM Candidate c 
+LEFT JOIN Vote v 
+ON c.id = v.CandidateId
+GROUP BY CandidateId, Name
+)
+
+SELECT 
+Name
+FROM temp
+WHERE num_votes == (SELECT max(num_votes) FROM temp)
+
+
+-- 577.Employee Bonus
+SELECT
+e.name,
+b.bonus
+FROM Employee e 
+LEFT JOIN Bonus b 
+ON e.empId = b.empId
+WHERE b.bonus < 1000 OR b.bonus IS NULL
+
+
+
+-- 578. Get Highest Answer Rate Question
+WITH temp AS (
+SELECT
+question_id,
+sum(CASE WHEN action = 'answer' THEN 1 ELSE 0 END) / sum(CASE WHEN action = 'show' THEN 1 ELSE 0 END) AS ans_rate
+FROM survey_log s 
+GROUP BY question_id)
+
+SELECT
+question_id AS survey_log
+FROM temp
+ORDER BY ans_rate DESC LIMIT 1
 
 
 -- 1378. Replace Employee ID With The Unique Identifier
