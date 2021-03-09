@@ -514,6 +514,77 @@ FROM temp
 ORDER BY ans_rate DESC LIMIT 1
 
 
+-- 579. Find Cumulative Salary of an Employee
+SELECT
+e.Id,
+e.Month,
+sum(e.Salary) OVER (PARTITION BY e.Id ORDER BY e.Month ASC RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) AS Salary
+FROM Employee e
+LEFT JOIN (
+    SELECT
+    Id,
+    max(Month) AS Month
+    FROM Employee
+    GROUP BY Id
+) t 
+ON e.Id = t.Id AND e.Month = t.Month
+WHERE t.Month IS NULL
+ORDER BY e.Id ASC, e.Month DESC
+
+
+
+-- 580. Count Student Number in Departments
+SELECT
+d.dept_name,
+ifnull(count(DISTINCT s.student_id), 0) student_number
+FROM department d 
+LEFT JOIN student s 
+ON d.dept_id = s.dept_id
+GROUP BY d.dept_name
+ORDER BY ifnull(count(DISTINCT s.student_id), 0) DESC, d.dept_name ASC 
+
+
+-- 584. Find Customer Referee
+SELECT DISTINCT
+name
+FROM customer 
+WHERE referee_id != '2' OR referee_id IS NULL
+/* try out:
+where clause will ignore null values even though those nulls pass the where condition
+*/
+
+-- 585. Investments in 2016
+WITH temp AS (
+SELECT
+i1.PID,
+i1.TIV_2015 TIV_2015_1,
+i2.TIV_2015 TIV_2015_2,
+i1.TIV_2016,
+i1.LON LON_1,
+i1.LAT LAT_1,
+i2.LON LON_2, 
+i2.LAT LAT_2 
+FROM insurance i1 
+JOIN insurance i2 
+ON i1.PID != i2.PID
+LEFT JOIN insurance i3
+ON i1.PID != i3.PID AND i1.LON = i3.LON AND i1.LAT = i3.LAT
+WHERE i1.TIV_2015 = i2.TIV_2015 AND (i3.LON IS NULL AND i3.LAT IS NULL) 
+)
+
+SELECT
+avg(TIV_2016) AS TIV_2016
+FROM temp
+
+/* solution:
+select round(sum(TIV_2016),2) as TIV_2016
+from insurance i
+where (select count(*) from insurance i1 where i.TIV_2015 = i1.TIV_2015)>1 and 
+      (select count(*) from insurance i2 where (i.LAT, i.LON) = (i2.LAT, i2.LON))=1
+*/
+
+
+
 -- 1378. Replace Employee ID With The Unique Identifier
 select
 i.unique_id,
@@ -523,7 +594,6 @@ left join EmployeeUNI as i
 on e.id == i.id
 
 -- 1384. Total Sales Amount by Year
-
 select
 product_id,
 product_name,
@@ -535,7 +605,7 @@ select
 *,
 year(period_start) as y,
 month(period_start) as m, 
-days(period_end - period_start) as num_days,
+days(period_end - period_start) as num_days
 from Product as p 
 left join Sales as s 
 on p.product_id == s.product_id
