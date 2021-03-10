@@ -583,6 +583,23 @@ where (select count(*) from insurance i1 where i.TIV_2015 = i1.TIV_2015)>1 and
       (select count(*) from insurance i2 where (i.LAT, i.LON) = (i2.LAT, i2.LON))=1
 */
 
+-- 586. Customer Placing the Largest Number of Orders
+
+SELECT
+customer_number
+FROM (
+SELECT
+customer_number,
+count(order_number) num_order
+FROM Orders 
+GROUP BY customer_number
+) t
+ORDER BY num_order DESC LIMIT 1
+
+
+
+
+
 
 
 -- 1378. Replace Employee ID With The Unique Identifier
