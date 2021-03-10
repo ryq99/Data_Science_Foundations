@@ -1,0 +1,59 @@
+# Let's say you work as a data scientist at Amazon. 
+# You want to improve the search results for product search but cannot 
+# change the underlying logic in the search algorithm. 
+# What methods could you use to increase recall?
+
+Given we are not allowed to change the algorithm, 
+we have to logically look at this search algorithm 
+like a black box, in which the underlying model will 
+not change but rather tweak the inputs into the algorithm 
+to increase the general recall output. Hence if we modify 
+the search query by adding additional input keywords or 
+chaining the results of different search terms, we can 
+get different results for the same original search term. 
+
+Remember that recall is the fraction of the relevant 
+documents that are successfully retrieved over the 
+total amount of relevant documents. In this case 
+that means we want to generally increase the number 
+of results returned in terms of relevance.
+
+Let's take an example to demonstrate.
+
+Let's assume the algorithm using lexical search for 
+relevancy like Lucene search. If the search query is 
+“black shirts”, the results would still be generally 
+relevant if the products returned were dark colored 
+shirts such as dark grey, dark blue, etc... Instead however, 
+given how the general search algorithm might work, 
+"black shirts" would be more likely to bring up "blue shirts" 
+or "black shoes" first instead of other dark colored shirts 
+given that the algorithm doesn't know anything besides 
+lexical association. 
+
+Given that we cannot change the underlying algorithm, 
+we could surface these different dark colored shirts 
+by appending a synonyms query. A synonyms query would 
+replace or add to the existing words in the query with 
+words that are synonymous. Results for synonyms could 
+be chained to the first search query results. So we would 
+first return the results for "black shirts", and then 
+start returning the results for "dark grey shirts", 
+"dark blue shirts", etc...
+
+Another method would be to try search terms of products 
+that are adjacent to the values being searched. We would 
+use an algorithm of collaborative filtering to see what 
+products users bought together. Such as if people were 
+likely to buy black pants with a black shirt, we could 
+chain the search terms like "black pants" and "black shoes" 
+into the query as well. 
+
+We can also try modifying the search query by adding in 
+keywords and tags from relevant products that users click 
+on. If users that search for "black shirts" click on products 
+that feature black collared shirts at a higher rate, we can 
+append the keywords of "collared shirt" to our search query 
+to increase recall towards general user preference.
+
+5714551464
