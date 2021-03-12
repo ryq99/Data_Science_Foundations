@@ -598,9 +598,117 @@ ORDER BY num_order DESC LIMIT 1
 
 
 
+-- 595. Big Countries
+SELECT
+name, 
+population,
+area 
+FROM World 
+WHERE area > 3000000 OR population > 25000000
 
 
 
+-- 596. Classes More Than 5 Students
+SELECT
+class
+FROM courses
+GROUP BY class
+HAVING count(student) >= 5
+
+
+-- 597. Friend Requests I: Overall Acceptance Rate
+SELECT
+(SELECT
+count(*)
+FROM RequestAccepted)
+/
+(SELECT
+count(*) num_request
+FROM FriendRequest)
+
+/* solution:
+WITH num_sent AS (
+    SELECT COUNT(DISTINCT sender_id, send_to_id) AS 'num_sent'
+    FROM FriendRequest
+), num_accepted AS (
+    SELECT COUNT(DISTINCT requester_id, accepter_id) AS 'num_accepted'
+    FROM RequestAccepted
+)
+
+SELECT ROUND(IFNULL(b.num_accepted/1./a.num_sent, 0.), 2) AS 'accept_rate'
+FROM num_sent a, num_accepted b
+*/
+
+
+-- 601. Human Traffic of Stadium
+SELECT 
+id,
+visit_date,
+people
+FROM (
+SELECT
+*,
+sum(CASE WHEN people >= 100 THEN 1 ELSE 0 END) OVER (ORDER BY visit_date ASC RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) if_satisfy
+FROM Stadium s 
+) t
+WHERE if_satisfy = 3
+
+/* solution
+# This is all the id's that have >= 100 visitors
+
+with t1 as (select id, visit_date, people
+        from stadium
+        where people >= 100)
+        
+		# To be selected in a string with >= 3 consecutive ids, there are 3 possibilities
+		#  id + 1 and id +2 are also in t1
+		#  id + 1 and id -1 are also in t1
+		#  id - 1 and id - 2 are also in t1
+       
+	   select distinct id, visit_date, people
+        from t1 
+        where (id+1 in (select id from t1) and id+2 in (select id from t1))
+		
+        or (id+1 in (select id from t1) and id-1 in (select id from t1))
+		
+        or (id-1 in (select id from t1) and id-2 in (select id from t1));
+    */
+
+
+-- 602. Friend Requests II: Who Has the Most Friends
+WITH temp AS (
+SELECT DISTINCT 
+requester_id user_id
+FROM request_accepted
+UNION 
+SELECT DISTINCT
+accepter_id user_id 
+FROM request_accepted
+)
+
+SELECT
+user_id id,
+num_friends num
+FROM (
+SELECT
+user_id,
+num_friends,
+dense_rank() over (order by num_friends DESC) rank
+FROM (
+SELECT
+user_id,
+count(r.requester_id) + count(a.accepter_id) num_friends
+FROM temp u
+LEFT JOIN request_accepted r 
+ON u.user_id = r.requester_id 
+LEFT JOIN request_accepted a 
+ON u.user_id = a.accepter_id
+GROUP BY u.user_id) t
+) t1
+WHERE rank = 1
+
+/* try out:
+- union doesn't need brackets like subquery
 
 -- 1378. Replace Employee ID With The Unique Identifier
 select
