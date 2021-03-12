@@ -686,29 +686,43 @@ accepter_id user_id
 FROM request_accepted
 )
 
+
 SELECT
-user_id id,
-num_friends num
-FROM (
-SELECT
-user_id,
-num_friends,
-dense_rank() over (order by num_friends DESC) rank
-FROM (
-SELECT
-user_id,
-count(r.requester_id) + count(a.accepter_id) num_friends
-FROM temp u
-LEFT JOIN request_accepted r 
-ON u.user_id = r.requester_id 
-LEFT JOIN request_accepted a 
-ON u.user_id = a.accepter_id
-GROUP BY u.user_id) t
-) t1
-WHERE rank = 1
+r.user_id id,
+r.num_req + a.num_acc num
+FROM
+(
+    SELECT
+    temp.user_id,
+    count(request_accepted.requester_id) num_req
+    FROM temp
+    LEFT JOIN request_accepted 
+    ON temp.user_id = request_accepted.requester_id
+    GROUP BY temp.user_id
+) r
+JOIN
+(
+    SELECT
+    temp.user_id,
+    count(request_accepted.accepter_id) num_acc
+    FROM temp
+    LEFT JOIN request_accepted 
+    ON temp.user_id = request_accepted.accepter_id
+    GROUP BY temp.user_id
+) a
+ON r.user_id = a.user_id
+ORDER BY r.num_req + a.num_acc DESC
+LIMIT 1
+
+
 
 /* try out:
 - union doesn't need brackets like subquery
+
+
+
+
+
 
 -- 1378. Replace Employee ID With The Unique Identifier
 select
