@@ -686,7 +686,6 @@ accepter_id user_id
 FROM request_accepted
 )
 
-
 SELECT
 r.user_id id,
 r.num_req + a.num_acc num
@@ -715,14 +714,86 @@ ORDER BY r.num_req + a.num_acc DESC
 LIMIT 1
 
 
-
 /* try out:
 - union doesn't need brackets like subquery
+- careful of coding format among more than 3 joins
+*/
+
+
+-- 603. Consecutive Available Seats
+WITH temp AS (
+    SELECT 
+    seat_id 
+    FROM cinema 
+    WHERE free = 1
+)
+
+SELECT 
+seat_id 
+FROM temp 
+WHERE (seat_id IN (SELECT seat_id - 1 FROM temp) OR
+       seat_id IN (SELECT seat_id + 1 FROM temp))
 
 
 
+-- 607. Sales Person
+WITH temp AS (
+    SELECT
+    name, 
+    sales_id
+    FROM company 
+    JOIN orders 
+    ON  company.com_id = orders.com_id
+    WHERE name = 'RED'
+)
+
+SELECT DISTINCT
+name 
+FROM salesperson
+WHERE sales_id NOT IN (SELECT sales_id FROM temp)
 
 
+-- 608. Tree Node
+SELECT
+id,
+CASE WHEN sum(is_child) = 0 THEN 'Root'
+     WHEN sum(is_child) != 0 AND sum(is_parent) != 0 THEN 'Inner'
+     WHEN sum(is_child) != 0 AND sum(is_parent) = 0 THEN 'Leaf'
+     END AS Type  
+FROM (
+SELECT
+t1.id,
+(CASE WHEN t2.id IS NULL THEN 0 ELSE 1 END) is_child,
+(CASE WHEN t3.p_id IS NULL THEN 0 ELSE 1 END) is_parent
+FROM tree t1 
+LEFT JOIN tree t2 
+ON t1.p_id = t2.id 
+LEFT JOIN tree t3 
+ON t1.id = t3.p_id) t 
+GROUP BY id
+
+
+-- 610. Triangle Judgement
+SELECT
+x,
+y,
+z,
+CASE WHEN x + y > z AND abs(x - y) < z THEN 'Yes' ELSE 'No' END AS Triangle
+FROM triangle 
+
+
+-- 612. Shortest Distance in a Plane
+SELECT
+round(min(sqrt(power(p1.x - p2.x, 2) + power(p1.y - p2.y, 2))), 2) shortest
+FROM point_2d p1, point_2d p2 
+WHERE p1.x != p2.x OR p1.y != p2.y
+
+
+
+/* try out:
+square()
+sqrt()
+*/
 
 -- 1378. Replace Employee ID With The Unique Identifier
 select
