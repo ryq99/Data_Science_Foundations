@@ -788,12 +788,130 @@ round(min(sqrt(power(p1.x - p2.x, 2) + power(p1.y - p2.y, 2))), 2) shortest
 FROM point_2d p1, point_2d p2 
 WHERE p1.x != p2.x OR p1.y != p2.y
 
-
-
 /* try out:
 square()
 sqrt()
 */
+
+
+
+-- 613. Shortest Distance in a Line
+SELECT
+min(abs(p1.x - p2.x)) shortest
+FROM point p1, point p2 
+WHERE p1.x != p2.x 
+
+
+
+-- 614. Second Degree Follower
+SELECT
+f1.follower,
+count(distinct f2.follower) num
+FROM follow f1 
+LEFT JOIN follow f2
+ON f1.follower = f2.followee
+GROUP BY f1.follower
+HAVING count(f2.follower) > 0
+ORDER BY f1.follower
+
+
+
+-- 615. Average Salary: Departments VS Company
+WITH t1 AS (
+SELECT
+date_format(s.pay_date, 'yyyy-MM') as pay_month,
+e.department_id,
+avg(s.amount) dpt_salary
+FROM salary s
+JOIN employee e
+ON s.employee_id = e.employee_id
+GROUP BY date_format(s.pay_date, 'yyyy-MM'), e.department_id
+),
+t2 AS (
+SELECT
+date_format(s.pay_date, 'yyyy-MM') as pay_month,
+avg(s.amount) gbl_salary
+FROM salary s
+JOIN employee e
+ON s.employee_id = e.employee_id
+GROUP BY date_format(s.pay_date, 'yyyy-MM')
+)
+
+
+SELECT
+t1.pay_month,
+t1.department_id,
+case when t1.dpt_salary > t2.gbl_salary then 'higher' 
+     when t1.dpt_salary = t2.gbl_salary then 'same' 
+     else 'lower' end as comparison
+FROM t1 
+JOIN t2 
+ON t1.pay_month = t2.pay_month
+
+
+-- 618. Students Report By Geography
+with temp as (
+    select
+    continent,
+    row_number() over (partition by continent order by name asc) as idx,
+    name
+    from student
+    order by continent
+)
+
+select
+usa.America,
+asia.Asia,
+europe.Europe
+from (
+    select
+    idx,
+    name as America
+    from temp
+    where continent = 'America'
+    ) usa 
+left join (
+    select
+    idx,
+    name as Asia
+    from temp
+    where continent = 'Asia'
+) asia
+on usa.idx = asia.idx
+left join (
+    select
+    idx,
+    name as Europe
+    from temp
+    where continent = 'Europe'
+) europe 
+on usa.idx = europe.idx
+
+/* solution: 
+With cte as
+(
+Select *, 
+row_number() over (partition by continent order by name) AS row_id From student
+)
+Select
+Max(Case When continent = 'America' Then name End) 'America',
+Max(Case When continent = 'Asia' Then name End) 'Asia',
+Max(Case When continent = 'Europe' Then name End) 'Europe'
+From cte
+Group by row_id
+*/
+
+
+-- 619. Biggest Single Number
+select
+max(num) as num
+from (
+select
+num
+from my_numbers n 
+group by num
+having count(num) = 1
+) t
 
 -- 1378. Replace Employee ID With The Unique Identifier
 select
