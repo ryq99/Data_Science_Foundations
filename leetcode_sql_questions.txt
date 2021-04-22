@@ -923,9 +923,123 @@ description,
 rating
 from cinema
 where
-id // 2 = 1 and 
+id % 2 = 1 and 
 description != 'boring'
-order by rating
+order by rating desc
+
+/* try out:
+remainder: MOD() or %
+integer result: \ floor()
+*/
+
+
+-- 626. Exchange Seats
+select
+case when s.id % 2 = 1 and s.id != (select max(s.id) from seat) then s.id + 1
+     when s.id % 2 = 0 then s.id - 1
+     else s.id end as id,
+student 
+from seat s
+order by t.id
+
+
+-- 627. Swap Salary
+UPDATE salary
+SET sex =
+CASE WHEN   sex = 'm' THEN 'f'
+     WHEN   sex = 'f' THEN 'm'
+	 END;
+
+
+-- 1045. Customers Who Bought All Products
+select
+customer_id
+from Customer 
+group by customer_id
+having count(distinct product_key) = (select count(distinct product_key) from product)
+
+
+-- 1050. Actors and Directors Who Cooperated At Least Three Times
+select
+actor_id,
+director_id
+from ActorDirector
+group by actor_id, director_id
+having count(distinct timestamp) >= 3
+
+-- 1068. Product Sales Analysis I
+select
+p.product_name,
+s.year,
+s.price
+from Sales s 
+join Product p 
+on s.product_id = p.product_id
+
+
+-- 1069. Product Sales Analysis II
+select
+product_id,
+sum(quantity) as total_quantity
+from Sales 
+group by product_id
+order by product_id
+
+-- 1070. Product Sales Analysis III
+select
+s.product_id,
+s.year as first_year,
+s.quantity, 
+s.price
+from Sales s
+join (
+    select
+    product_id,
+    min(year) year
+    from Sales
+    group by product_id
+) t 
+on s.product_id = t.product_id and s.year = t.year
+
+-- 1075. Project Employees I
+select
+p.project_id,
+round(avg(e.experience_years), 2) as average_years
+from Project p 
+join Employee e 
+on p.employee_id = e.employee_id 
+group by p.project_id 
+order by p.project_id
+
+-- 1076. Project Employees II
+with temp as (
+select
+project_id,
+count(distinct employee_id) num_emp
+from Project p 
+group by project_id)
+
+select
+t.project_id
+from temp t 
+where t.num_emp = (select max(num_emp) from temp)
+
+-- 1077. Project Employees III
+with temp as (
+select
+p.project_id,
+p.employee_id,
+dense_rank() over (partition by p.project_id order by e.experience_years desc) exp_rank
+from Project p
+join Employee e
+on p.employee_id = e.employee_id)
+
+select
+project_id,
+employee_id
+from temp 
+where exp_rank = 1
+
 
 
 -- 1378. Replace Employee ID With The Unique Identifier
